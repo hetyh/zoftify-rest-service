@@ -1,6 +1,4 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { AppController } from './app.controller.js';
-import { AppService } from './app.service.js';
 import { UsersModule } from './users/users.module.js';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -9,10 +7,12 @@ import Joi from 'joi';
 import { PGliteDriver } from 'typeorm-pglite';
 import { uuid_ossp } from '@electric-sql/pglite/contrib/uuid_ossp';
 import { AppLoggerMiddleware } from './common/middleware/logger.middleware.js';
+import { AuthModule } from './auth/auth.module.js';
 
 export const configValidation = Joi.object<Config>({
   NODE_ENV: Joi.string().valid('development', 'production', 'test').required(),
   APP_PORT: Joi.number().port().required(),
+  APP_SECRET: Joi.string().required(),
   PG_HOST: Joi.string().required(),
   PG_PORT: Joi.number().port().required(),
   PG_USERNAME: Joi.string().required(),
@@ -23,6 +23,7 @@ export const configValidation = Joi.object<Config>({
 export interface Config {
   NODE_ENV: 'development' | 'production' | 'test';
   APP_PORT: number;
+  APP_SECRET: string;
   PG_HOST: string;
   PG_PORT: number;
   PG_USERNAME: string;
@@ -55,6 +56,7 @@ export interface Config {
         synchronize: configService.get('NODE_ENV') === 'development',
       }),
     }),
+    AuthModule,
   ],
   controllers: [],
   providers: [],

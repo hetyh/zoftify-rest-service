@@ -1,3 +1,4 @@
+import { Exclude } from 'class-transformer';
 import {
   Entity,
   Column,
@@ -8,13 +9,18 @@ import {
 
 @Entity()
 export class User {
+  constructor(partial: Partial<User>) {
+    Object.assign(this, partial);
+  }
+
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
   @Column({ unique: true, nullable: false })
   email!: string;
 
-  @Column({ nullable: false, select: false })
+  @Exclude()
+  @Column({ nullable: false })
   password!: string;
 
   @Column()
