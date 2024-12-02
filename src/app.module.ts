@@ -1,13 +1,14 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
+import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { User } from './users/entities/user.entity';
 import * as Joi from 'joi';
 import { PGliteDriver } from 'typeorm-pglite';
-import { uuid_ossp } from '@electric-sql/pglite/contrib/uuid_ossp';
 import { AppLoggerMiddleware } from './common/middleware/logger.middleware';
 import { AuthModule } from './auth/auth.module';
+import { TerminusModule } from '@nestjs/terminus';
+import { AppController } from './app.controller';
 
 export const configValidation = Joi.object<Config>({
   NODE_ENV: Joi.string().valid('development', 'production', 'test').required(),
@@ -20,8 +21,14 @@ export const configValidation = Joi.object<Config>({
   PG_DATABASE: Joi.string().required(),
 });
 
+enum NODE_ENV {
+  DEV = 'development',
+  PROD = 'production',
+  TEST = 'test',
+}
+
 export interface Config {
-  NODE_ENV: 'development' | 'production' | 'test';
+  NODE_ENV: NODE_ENV;
   APP_PORT: number;
   APP_SECRET: string;
   PG_HOST: string;
@@ -30,6 +37,28 @@ export interface Config {
   PG_PASSWORD: string;
   PG_DATABASE: string;
 }
+
+const typeOrmConfigFactory = async (configService: ConfigService<Config>) => {
+  const isProd = configService.get<NODE_ENV>('NODE_ENV') === NODE_ENV.PROD;
+
+  const config: TypeOrmModuleOptions = {
+    type: 'postgres',
+    host: configService.get('PG_HOST'),
+    port: configService.get<number>('PG_PORT'),
+    username: configService.get('PG_USERNAME'),
+    password: configService.get('PG_PASSWORD'),
+    database: configService.get('PG_DATABASE'),
+    entities: [User],
+    synchronize: !isProd ? true : false,
+    driver: !isProd
+      ? new PGliteDriver({
+          dataDir: 'pg_data',
+        }).driver
+      : undefined,
+  };
+
+  return config;
+};
 
 @Module({
   imports: [
@@ -41,24 +70,12 @@ export interface Config {
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService<Config>) => ({
-        type: 'postgres',
-        driver: new PGliteDriver({
-          dataDir: 'pg_data',
-          extensions: { uuid_ossp },
-        }).driver,
-        host: configService.get('PG_HOST'),
-        port: configService.get<number>('PG_PORT'),
-        username: configService.get('PG_USERNAME'),
-        password: configService.get('PG_PASSWORD'),
-        database: configService.get('PG_DATABASE'),
-        entities: [User],
-        synchronize: configService.get('NODE_ENV') === 'development',
-      }),
+      useFactory: typeOrmConfigFactory,
     }),
     AuthModule,
+    TerminusModule,
   ],
-  controllers: [],
+  controllers: [AppController],
   providers: [],
 })
 export class AppModule implements NestModule {
