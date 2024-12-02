@@ -13,8 +13,8 @@ export class User {
     Object.assign(this, partial);
   }
 
-  @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  @PrimaryGeneratedColumn()
+  id!: number;
 
   @Column({ unique: true, nullable: false })
   email!: string;

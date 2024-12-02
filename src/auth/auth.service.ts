@@ -14,7 +14,7 @@ export class AuthService {
     const user = await this.usersService.findOne({ email });
 
     if (!user || !bcrypt.compareSync(pass, user.password)) {
-      throw new UnauthorizedException();
+      throw new UnauthorizedException('Provided login data is incorrect');
     }
 
     const payload = { sub: user.id, email: user.email };

@@ -6,7 +6,7 @@ import {
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, FindOptionsWhere, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import * as bcrypt from 'bcrypt';
 
@@ -15,6 +15,7 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    public dataSource: DataSource,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -35,11 +36,11 @@ export class UsersService {
     return this.userRepository.find();
   }
 
-  findOne(opts: { id?: string; email?: string }): Promise<User | null> {
+  findOne(opts: FindOptionsWhere<User>): Promise<User | null> {
     return this.userRepository.findOneBy({ id: opts.id, email: opts.email });
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
+  async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.userRepository.findOneBy({ id });
 
     if (!user) {
@@ -49,7 +50,7 @@ export class UsersService {
     return this.userRepository.save({ ...user, ...updateUserDto });
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: number): Promise<void> {
     const user = await this.userRepository.findOneBy({ id });
 
     if (!user) {
