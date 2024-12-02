@@ -1,13 +1,13 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { UsersModule } from './users/users.module.js';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { UsersModule } from './users/users.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { User } from './users/entities/user.entity.js';
-import Joi from 'joi';
+import { User } from './users/entities/user.entity';
+import * as Joi from 'joi';
 import { PGliteDriver } from 'typeorm-pglite';
 import { uuid_ossp } from '@electric-sql/pglite/contrib/uuid_ossp';
-import { AppLoggerMiddleware } from './common/middleware/logger.middleware.js';
-import { AuthModule } from './auth/auth.module.js';
+import { AppLoggerMiddleware } from './common/middleware/logger.middleware';
+import { AuthModule } from './auth/auth.module';
 
 export const configValidation = Joi.object<Config>({
   NODE_ENV: Joi.string().valid('development', 'production', 'test').required(),

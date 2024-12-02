@@ -12,12 +12,12 @@ import {
   ClassSerializerInterceptor,
   SerializeOptions,
 } from '@nestjs/common';
-import { UsersService } from './users.service.js';
-import { CreateUserDto } from './dto/create-user.dto.js';
-import { UpdateUserDto } from './dto/update-user.dto.js';
-import { ByIdParams } from './dto/by-id-user.dto.js';
-import { Public } from '../common/decorators.js';
-import { User } from './entities/user.entity.js';
+import { UsersService } from './users.service';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { ByIdParams } from './dto/by-id-user.dto';
+import { Public } from '../common/decorators';
+import { User } from './entities/user.entity';
 
 @Controller('users')
 export class UsersController {
