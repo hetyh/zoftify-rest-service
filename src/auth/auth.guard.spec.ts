@@ -5,6 +5,9 @@ import { Reflector } from '@nestjs/core';
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { IS_PUBLIC_KEY } from '../common/decorators';
 
+const VALID_TOKEN = 'valid_token';
+const INVALID_TOKEN = 'invalid_token';
+
 describe('AuthGuard', () => {
   let authGuard: AuthGuard;
   let jwtService: JwtService;
@@ -74,7 +77,7 @@ describe('AuthGuard', () => {
     });
 
     it('should throw UnauthorizedException for invalid token', async () => {
-      const context = createMockContext('invalid-token');
+      const context = createMockContext(INVALID_TOKEN);
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
       jest
         .spyOn(jwtService, 'verifyAsync')
@@ -87,14 +90,14 @@ describe('AuthGuard', () => {
 
     it('should return true for valid token', async () => {
       const mockPayload = { sub: '123', username: 'testuser' };
-      const context = createMockContext('valid-token');
+      const context = createMockContext(VALID_TOKEN);
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
       jest.spyOn(jwtService, 'verifyAsync').mockResolvedValue(mockPayload);
 
       const result = await authGuard.canActivate(context);
 
       expect(result).toBe(true);
-      expect(jwtService.verifyAsync).toHaveBeenCalledWith('valid-token');
+      expect(jwtService.verifyAsync).toHaveBeenCalledWith(VALID_TOKEN);
     });
 
     it('should return undefined for malformed authorization header', async () => {
@@ -108,7 +111,7 @@ describe('AuthGuard', () => {
         }),
         getHandler: () => ({}),
         getClass: () => ({}),
-      } as unknown as ExecutionContext;
+      } as ExecutionContext;
 
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
 

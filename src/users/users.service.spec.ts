@@ -4,10 +4,32 @@ import { User } from './entities/user.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users.module';
 import { Repository } from 'typeorm';
-import { CreateUserDto } from './dto/create-user.dto';
 import { compareSync } from 'bcrypt';
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { UpdateUserDto } from './dto/update-user.dto';
+
+const USER_RECORD: User = {
+  id: 1,
+  name: 'Alex',
+  email: 'test@example.com',
+  password: 'test',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+const CREATE_USER_DTO = {
+  name: 'Alex',
+  email: 'test@example.com',
+  password: 'test',
+};
+
+const UPDATE_USER_DTO = {
+  name: 'Alex II',
+  email: 'test2@example.com',
+  password: 'test2',
+};
+
+const CONFLICT_EXCEPTION_MESSAGE = 'User already exists';
+const NOT_FOUND_EXCEPTION_MESSAGE = 'User was not found';
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -41,130 +63,70 @@ describe('UsersService', () => {
   });
 
   it('should return User[] for findAll', async () => {
-    const userData: User = {
-      id: 1,
-      name: 'Alex',
-      email: 'test@example.com',
-      password: 'test',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    await repository.insert(USER_RECORD);
 
-    await repository.insert(userData);
-
-    expect(await service.findAll()).toEqual([userData]);
+    expect(await service.findAll()).toEqual([USER_RECORD]);
   });
 
   it('should return User for findOne', async () => {
-    const userData: User = {
-      id: 1,
-      name: 'Alex',
-      email: 'test@example.com',
-      password: 'test',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    await repository.insert(USER_RECORD);
 
-    await repository.insert(userData);
-
-    expect(await service.findOne({ id: 1 })).toEqual(userData);
+    expect(await service.findOne({ id: USER_RECORD.id })).toEqual(USER_RECORD);
   });
 
   it('should return null for findOne', async () => {
-    expect(await service.findOne({ id: 1 })).toEqual(null);
+    expect(await service.findOne({ id: USER_RECORD.id })).toEqual(null);
   });
 
   it('should return User for create', async () => {
-    const createUserDto: CreateUserDto = {
-      name: 'Alex',
-      email: 'test@example.com',
-      password: 'test',
-    };
+    const user = await service.create(CREATE_USER_DTO);
 
-    const user = await service.create(createUserDto);
-
-    expect(user.email).toBe(createUserDto.email);
-    expect(user.name).toBe(createUserDto.name);
+    expect(user.email).toBe(CREATE_USER_DTO.email);
+    expect(user.name).toBe(CREATE_USER_DTO.name);
 
     expect(user.id).toBe(1);
     expect(user.createdAt).toBeTruthy();
     expect(user.updatedAt).toBeTruthy();
 
-    expect(compareSync(createUserDto.password, user.password)).toBe(true);
+    expect(compareSync(CREATE_USER_DTO.password, user.password)).toBe(true);
   });
 
   it('should throw ConflictException for create', async () => {
-    const createUserDto: CreateUserDto = {
-      name: 'Alex',
-      email: 'test@example.com',
-      password: 'test',
-    };
+    await repository.insert(CREATE_USER_DTO);
 
-    await repository.insert(createUserDto);
-
-    await expect(service.create(createUserDto)).rejects.toThrow(
-      new ConflictException('User already exists'),
+    await expect(service.create(CREATE_USER_DTO)).rejects.toThrow(
+      new ConflictException(CONFLICT_EXCEPTION_MESSAGE),
     );
   });
 
   it('should return User for update', async () => {
-    const userData: User = {
-      id: 1,
-      name: 'Alex',
-      email: 'test@example.com',
-      password: 'test',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    await repository.insert(USER_RECORD);
 
-    const updateUserDto: UpdateUserDto = {
-      name: 'Alex II',
-      email: 'test2@example.com',
-      password: 'test2',
-    };
+    const user = await service.update(USER_RECORD.id, UPDATE_USER_DTO);
 
-    await repository.insert(userData);
-
-    const user = await service.update(userData.id, updateUserDto);
-
-    expect(user.email).toBe(updateUserDto.email);
-    expect(user.name).toBe(updateUserDto.name);
+    expect(user.email).toBe(UPDATE_USER_DTO.email);
+    expect(user.name).toBe(UPDATE_USER_DTO.name);
 
     expect(user.id).toBe(1);
-    expect(user.createdAt).toStrictEqual(userData.createdAt);
+    expect(user.createdAt).toStrictEqual(USER_RECORD.createdAt);
   });
 
   it('should throw NotFoundException for update', async () => {
-    const updateUserDto: UpdateUserDto = {
-      name: 'Alex II',
-      email: 'test2@example.com',
-      password: 'test2',
-    };
-
-    await expect(service.update(1, updateUserDto)).rejects.toThrow(
-      new NotFoundException('User was not found'),
+    await expect(service.update(1, UPDATE_USER_DTO)).rejects.toThrow(
+      new NotFoundException(NOT_FOUND_EXCEPTION_MESSAGE),
     );
   });
 
   it('should return void for remove', async () => {
-    const userData: User = {
-      id: 1,
-      name: 'Alex',
-      email: 'test@example.com',
-      password: 'test',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    await repository.insert(USER_RECORD);
 
-    await repository.insert(userData);
-
-    expect(await service.remove(userData.id)).toBeFalsy();
+    expect(await service.remove(USER_RECORD.id)).toBeFalsy();
     expect(await service.findAll()).toEqual([]);
   });
 
   it('should throw NotFoundException for remove', async () => {
-    await expect(service.remove(1)).rejects.toThrow(
-      new NotFoundException('User was not found'),
+    await expect(service.remove(USER_RECORD.id)).rejects.toThrow(
+      new NotFoundException(NOT_FOUND_EXCEPTION_MESSAGE),
     );
   });
 });

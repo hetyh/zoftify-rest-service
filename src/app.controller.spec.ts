@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
-import { AppModule } from './app.module';
 import { User } from './users/entities/user.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { TerminusModule } from '@nestjs/terminus';
 
 describe('AppController', () => {
   let appController: AppController;
@@ -18,8 +18,9 @@ describe('AppController', () => {
           synchronize: true,
           dropSchema: true,
         }),
-        AppModule,
+        TerminusModule,
       ],
+      providers: [AppController],
     }).compile();
 
     appController = moduleRef.get<AppController>(AppController);

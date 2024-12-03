@@ -4,7 +4,6 @@ import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { User } from './users/entities/user.entity';
 import * as Joi from 'joi';
-import { PGliteDriver } from 'typeorm-pglite';
 import { AppLoggerMiddleware } from './common/middleware/logger.middleware';
 import { AuthModule } from './auth/auth.module';
 import { TerminusModule } from '@nestjs/terminus';
@@ -50,11 +49,6 @@ const typeOrmConfigFactory = async (configService: ConfigService<Config>) => {
     database: configService.get('PG_DATABASE'),
     entities: [User],
     synchronize: !isProd ? true : false,
-    driver: !isProd
-      ? new PGliteDriver({
-          dataDir: 'pg_data',
-        }).driver
-      : undefined,
   };
 
   return config;

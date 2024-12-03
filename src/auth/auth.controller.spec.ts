@@ -18,6 +18,28 @@ const jwtModuleConfig = {
   privateKey: 'private_key',
 };
 
+const USER_RECORD: User = {
+  id: 1,
+  name: 'Alex',
+  email: 'test@example.com',
+  password: '$2b$11$QrwHzXfvx7CwkVQjL9Nra.v7WIMTdJNvZhhhQTa0a8NVcIdm/Kt0S', // "test"
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+const USER_CREDS_RIGHT = {
+  email: 'test@example.com',
+  password: 'test',
+};
+
+const USER_CREDS_WRONG = {
+  email: 'test@example.com',
+  password: 'wrong',
+};
+
+const UNAUTHORIZED_EXCEPTION_MESSAGE = 'Provided login data is incorrect';
+const JWT_TOKEN = 'signed';
+
 describe('AuthController', () => {
   let controller: AuthController;
   let repository: Repository<User>;
@@ -48,7 +70,7 @@ describe('AuthController', () => {
     signSpy = jest
       .spyOn(jwt, 'sign')
       .mockImplementation((token, secret, options, callback) => {
-        const result = 'signed';
+        const result = JWT_TOKEN;
         return callback ? callback(null, result) : result;
       });
   });
@@ -62,55 +84,24 @@ describe('AuthController', () => {
   });
 
   it('should return JWT for signIn', async () => {
-    const userData: User = {
-      id: 1,
-      name: 'Alex',
-      email: 'test@example.com',
-      password: '$2b$11$QrwHzXfvx7CwkVQjL9Nra.v7WIMTdJNvZhhhQTa0a8NVcIdm/Kt0S', // "test"
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    await repository.insert(USER_RECORD);
 
-    await repository.insert(userData);
+    const result = await controller.signIn(USER_CREDS_RIGHT);
 
-    const result = await controller.signIn({
-      email: 'test@example.com',
-      password: 'test',
-    });
-
-    expect(result.access_token).toBe('signed');
+    expect(result.access_token).toBe(JWT_TOKEN);
   });
 
   it('should throw UnauthorizedException (no user) for signIn', async () => {
-    await expect(
-      controller.signIn({
-        email: 'test@example.com',
-        password: 'test',
-      }),
-    ).rejects.toThrow(
-      new UnauthorizedException('Provided login data is incorrect'),
+    await expect(controller.signIn(USER_CREDS_RIGHT)).rejects.toThrow(
+      new UnauthorizedException(UNAUTHORIZED_EXCEPTION_MESSAGE),
     );
   });
 
   it('should throw UnauthorizedException (wrong password) for signIn', async () => {
-    const userData: User = {
-      id: 1,
-      name: 'Alex',
-      email: 'test@example.com',
-      password: '$2b$11$QrwHzXfvx7CwkVQjL9Nra.v7WIMTdJNvZhhhQTa0a8NVcIdm/Kt0S', // "test"
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    await repository.insert(USER_RECORD);
 
-    await repository.insert(userData);
-
-    await expect(
-      controller.signIn({
-        email: 'test@example.com',
-        password: 'wrong',
-      }),
-    ).rejects.toThrow(
-      new UnauthorizedException('Provided login data is incorrect'),
+    await expect(controller.signIn(USER_CREDS_WRONG)).rejects.toThrow(
+      new UnauthorizedException(UNAUTHORIZED_EXCEPTION_MESSAGE),
     );
   });
 });
