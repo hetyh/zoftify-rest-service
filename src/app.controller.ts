@@ -5,6 +5,7 @@ import {
   TypeOrmHealthIndicator,
 } from '@nestjs/terminus';
 import { Public } from './common/decorators';
+import dataSource from './database/database.providers';
 
 @Controller()
 export class AppController {
@@ -17,6 +18,11 @@ export class AppController {
   @Get('health')
   @HealthCheck()
   checkHealth() {
-    return this.health.check([async () => this.db.pingCheck('typeorm')]);
+    return this.health.check([
+      async () =>
+        this.db.pingCheck('database', {
+          connection: dataSource,
+        }),
+    ]);
   }
 }

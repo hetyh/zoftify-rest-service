@@ -1,14 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from '../users/users.module';
 import { AuthModule } from './auth.module';
-import { UsersService } from '../users/users.service';
 import { JwtModule, JwtSecretRequestType } from '@nestjs/jwt';
 import * as jwt from 'jsonwebtoken';
 import { UnauthorizedException } from '@nestjs/common';
+import { DATA_SOURCE } from '../database/constants';
 
 const jwtModuleConfig = {
   secretOrKeyProvider: (requestType: JwtSecretRequestType) =>
@@ -39,25 +38,27 @@ describe('AuthService', () => {
   let signSpy: jest.SpyInstance;
 
   beforeEach(async () => {
+    const dataSourceTest = new DataSource({
+      type: 'better-sqlite3',
+      database: ':memory:',
+      entities: [User],
+      synchronize: true,
+      dropSchema: true,
+    });
+
     moduleRef = await Test.createTestingModule({
-      imports: [
-        TypeOrmModule.forRoot({
-          type: 'better-sqlite3',
-          database: ':memory:',
-          entities: [User],
-          synchronize: true,
-          dropSchema: true,
-        }),
-        JwtModule.register(jwtModuleConfig),
-        UsersModule,
-        AuthModule,
-      ],
-    }).compile();
+      imports: [JwtModule.register(jwtModuleConfig), UsersModule, AuthModule],
+    })
+      .overrideProvider(DATA_SOURCE)
+      .useFactory({
+        factory: async () => {
+          return dataSourceTest.initialize();
+        },
+      })
+      .compile();
 
     service = moduleRef.get<AuthService>(AuthService);
-    repository = moduleRef
-      .get<UsersService>(UsersService)
-      .dataSource.getRepository(User);
+    repository = dataSourceTest.getRepository(User);
 
     signSpy = jest
       .spyOn(jwt, 'sign')

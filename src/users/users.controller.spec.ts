@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersController } from './users.controller';
-import { UsersService } from './users.service';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UsersModule } from './users.module';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { compareSync } from 'bcrypt';
+import { DATA_SOURCE } from '../database/constants';
+import { DatabaseModule } from '../database/database.module';
 
 const USER_RECORD: User = {
   id: 1,
@@ -38,23 +38,31 @@ describe('UsersController', () => {
   let moduleRef: TestingModule;
 
   beforeEach(async () => {
+    const dataSourceTest = new DataSource({
+      type: 'better-sqlite3',
+      database: ':memory:',
+      entities: [User],
+      synchronize: true,
+      dropSchema: true,
+    });
+
     moduleRef = await Test.createTestingModule({
-      imports: [
-        TypeOrmModule.forRoot({
-          type: 'better-sqlite3',
-          database: ':memory:',
-          entities: [User],
-          synchronize: true,
-          dropSchema: true,
-        }),
-        UsersModule,
-      ],
-    }).compile();
+      imports: [UsersModule, DatabaseModule],
+    })
+      .overrideProvider(DATA_SOURCE)
+      .useFactory({
+        factory: async () => {
+          return dataSourceTest.initialize();
+        },
+      })
+      .compile();
 
     controller = moduleRef.get<UsersController>(UsersController);
-    repository = moduleRef
-      .get<UsersService>(UsersService)
-      .dataSource.getRepository(User);
+    repository = dataSourceTest.getRepository(User);
+  });
+
+  afterEach(() => {
+    moduleRef.close();
   });
 
   it('should be defined', () => {

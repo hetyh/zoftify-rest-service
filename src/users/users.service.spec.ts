@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users.module';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { compareSync } from 'bcrypt';
 import { ConflictException, NotFoundException } from '@nestjs/common';
+import { DATA_SOURCE } from '../database/constants';
 
 const USER_RECORD: User = {
   id: 1,
@@ -37,21 +37,27 @@ describe('UsersService', () => {
   let moduleRef: TestingModule;
 
   beforeEach(async () => {
+    const dataSourceTest = new DataSource({
+      type: 'better-sqlite3',
+      database: ':memory:',
+      entities: [User],
+      synchronize: true,
+      dropSchema: true,
+    });
+
     moduleRef = await Test.createTestingModule({
-      imports: [
-        TypeOrmModule.forRoot({
-          type: 'better-sqlite3',
-          database: ':memory:',
-          entities: [User],
-          synchronize: true,
-          dropSchema: true,
-        }),
-        UsersModule,
-      ],
-    }).compile();
+      imports: [UsersModule],
+    })
+      .overrideProvider(DATA_SOURCE)
+      .useFactory({
+        factory: async () => {
+          return dataSourceTest.initialize();
+        },
+      })
+      .compile();
 
     service = moduleRef.get<UsersService>(UsersService);
-    repository = service.dataSource.getRepository(User);
+    repository = dataSourceTest.getRepository(User);
   });
 
   afterEach(async () => {

@@ -1,13 +1,12 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { UsersModule } from './users/users.module';
-import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { User } from './users/entities/user.entity';
+import { ConfigModule } from '@nestjs/config';
 import * as Joi from 'joi';
 import { AppLoggerMiddleware } from './common/middleware/logger.middleware';
 import { AuthModule } from './auth/auth.module';
 import { TerminusModule } from '@nestjs/terminus';
 import { AppController } from './app.controller';
+import { DatabaseModule } from './database/database.module';
 
 export const configValidation = Joi.object<Config>({
   NODE_ENV: Joi.string().valid('development', 'production', 'test').required(),
@@ -37,40 +36,18 @@ export interface Config {
   PG_DATABASE: string;
 }
 
-const typeOrmConfigFactory = async (configService: ConfigService<Config>) => {
-  const isProd = configService.get<NODE_ENV>('NODE_ENV') === NODE_ENV.PROD;
-
-  const config: TypeOrmModuleOptions = {
-    type: 'postgres',
-    host: configService.get('PG_HOST'),
-    port: configService.get<number>('PG_PORT'),
-    username: configService.get('PG_USERNAME'),
-    password: configService.get('PG_PASSWORD'),
-    database: configService.get('PG_DATABASE'),
-    entities: [User],
-    synchronize: !isProd ? true : false,
-  };
-
-  return config;
-};
-
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       validationSchema: configValidation,
     }),
+    DatabaseModule,
     UsersModule,
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: typeOrmConfigFactory,
-    }),
     AuthModule,
     TerminusModule,
   ],
   controllers: [AppController],
-  providers: [],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
