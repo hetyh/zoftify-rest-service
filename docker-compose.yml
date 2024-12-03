@@ -23,6 +23,8 @@ services:
       - ./.env
     environment:
       APP_PORT: 8000
+      PG_HOST: db
+      PG_PORT: 5432
 
 networks:
   service:
