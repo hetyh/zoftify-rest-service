@@ -46,7 +46,7 @@ $ pnpm run test:cov
 
 ## API Endpoints
 
-Private endpoints require `Authorizatioon: Bearer ...` header.
+Private endpoints require `Authorization: Bearer ...` header.
 
 Public:
 
