@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { FindOptionsWhere, Repository } from 'typeorm';
+import { FindManyOptions, FindOptionsWhere, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { USER_REPOSITORY } from './constants';
@@ -32,12 +32,12 @@ export class UsersService {
     return this.userRepository.save({ ...createUserDto, password });
   }
 
-  findAll(): Promise<User[]> {
-    return this.userRepository.find();
+  findAll(opts?: FindManyOptions<User>): Promise<User[]> {
+    return this.userRepository.find(opts);
   }
 
   findOne(opts: FindOptionsWhere<User>): Promise<User | null> {
-    return this.userRepository.findOneBy({ id: opts.id, email: opts.email });
+    return this.userRepository.findOneBy(opts);
   }
 
   async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
@@ -45,6 +45,16 @@ export class UsersService {
 
     if (!user) {
       throw new NotFoundException('User was not found');
+    }
+
+    if (updateUserDto.email) {
+      const user = await this.userRepository.findOneBy({
+        email: updateUserDto.email,
+      });
+
+      if (user) {
+        throw new ConflictException('Email is already in use');
+      }
     }
 
     return this.userRepository.save({ ...user, ...updateUserDto });
