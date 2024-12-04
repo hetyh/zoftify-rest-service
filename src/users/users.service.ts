@@ -57,7 +57,11 @@ export class UsersService {
       }
     }
 
-    return this.userRepository.save({ ...user, ...updateUserDto });
+    const password = updateUserDto.password
+      ? { password: bcrypt.hashSync(updateUserDto.password, 10) }
+      : {};
+
+    return this.userRepository.save({ ...user, ...updateUserDto, ...password });
   }
 
   async remove(id: number): Promise<void> {
