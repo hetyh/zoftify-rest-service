@@ -45,6 +45,7 @@ export class UsersController {
 
   @Patch(':id')
   @UseInterceptors(ClassSerializerInterceptor)
+  @SerializeOptions({ type: User })
   update(
     @Param() params: ByIdParams,
     @Body() updateUserDto: UpdateUserDto,
