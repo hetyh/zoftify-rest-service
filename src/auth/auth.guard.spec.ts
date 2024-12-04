@@ -4,11 +4,25 @@ import { JwtService } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { IS_PUBLIC_KEY } from '../common/decorators';
+import { UsersModule } from '../users/users.module';
+import { User } from '../users/entities/user.entity';
+import { DataSource, Repository } from 'typeorm';
+import { DATA_SOURCE } from '../database/constants';
+
+const USER_RECORD: User = {
+  id: 1,
+  name: 'Alex',
+  email: 'test@example.com',
+  password: 'test',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
 
 const VALID_TOKEN = 'valid_token';
 const INVALID_TOKEN = 'invalid_token';
 
 describe('AuthGuard', () => {
+  let repository: Repository<User>;
   let authGuard: AuthGuard;
   let jwtService: JwtService;
   let reflector: Reflector;
@@ -22,14 +36,31 @@ describe('AuthGuard', () => {
   };
 
   beforeEach(async () => {
+    const dataSourceTest = new DataSource({
+      type: 'better-sqlite3',
+      database: ':memory:',
+      entities: [User],
+      synchronize: true,
+      dropSchema: true,
+    });
+
     const module: TestingModule = await Test.createTestingModule({
+      imports: [UsersModule],
       providers: [
         AuthGuard,
         { provide: JwtService, useValue: mockJwtService },
         { provide: Reflector, useValue: mockReflector },
       ],
-    }).compile();
+    })
+      .overrideProvider(DATA_SOURCE)
+      .useFactory({
+        factory: async () => {
+          return dataSourceTest.initialize();
+        },
+      })
+      .compile();
 
+    repository = dataSourceTest.getRepository(User);
     authGuard = module.get<AuthGuard>(AuthGuard);
     jwtService = module.get<JwtService>(JwtService);
     reflector = module.get<Reflector>(Reflector);
@@ -89,7 +120,9 @@ describe('AuthGuard', () => {
     });
 
     it('should return true for valid token', async () => {
-      const mockPayload = { sub: '123', username: 'testuser' };
+      await repository.insert(USER_RECORD);
+
+      const mockPayload = { sub: USER_RECORD.id, email: USER_RECORD.email };
       const context = createMockContext(VALID_TOKEN);
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
       jest.spyOn(jwtService, 'verifyAsync').mockResolvedValue(mockPayload);

@@ -8,10 +8,12 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { IS_PUBLIC_KEY } from '../common/decorators';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
+    private userService: UsersService,
     private jwtService: JwtService,
     private reflector: Reflector,
   ) {}
@@ -31,12 +33,22 @@ export class AuthGuard implements CanActivate {
     if (!token) {
       throw new UnauthorizedException('Unauthorized');
     }
+
     try {
       const payload = await this.jwtService.verifyAsync(token);
       request['user'] = payload;
     } catch {
       throw new UnauthorizedException('Unauthorized');
     }
+
+    const user = await this.userService.findOne({
+      email: request['user'].email,
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Unauthorized');
+    }
+
     return true;
   }
 
